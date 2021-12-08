@@ -30,6 +30,7 @@ def f01():
         print(result)
         assert(result == 352331)
 
+
 def f02():
     with open('input') as file:
         crabs = toInt(file.read().split(','))
