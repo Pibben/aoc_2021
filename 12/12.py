@@ -35,16 +35,14 @@ def f01():
             map[end].append(beg)
 
         def count(start, path, map):
-            if start.islower():
-                if start in path:
-                    return []
-
             if start == 'end':
                 return [path]
 
             sum = []
 
             for d in map[start]:
+                if d.islower() and d in path:
+                    continue
                 new = count(d, path + [start], map)
                 sum.extend(n for n in new if n not in sum)
 
@@ -69,27 +67,28 @@ def f02():
             map[beg].append(end)
             map[end].append(beg)
 
-        def count(start, path, map, ex):
-            if start.islower():
-                if path.count(start) == (2 if start == ex else 1):
-                    return set()
-
+        def count(start, path, map, a):
             if start == 'end':
                 return {path}
 
             sum = set()
 
             for d in map[start]:
-                new = count(d, path + (start,), map, ex)
+                if d.islower():
+                    if path.count(d) > 1:
+                        continue
+                    elif path.count(d) == 1:
+                        if d not in ['start', 'end'] and a:
+                            new = count(d, path + (start,), map, False)
+                            sum = sum.union(new)
+                        continue
+
+                new = count(d, path + (start,), map, a)
                 sum = sum.union(new)
 
             return sum
 
-        paths = count('start', (), map, '')
-        for a in map.keys():
-            if a.islower() and a not in ['start', 'end']:
-                paths2 = count('start', (), map, a)
-                paths = paths.union(paths2)
+        paths = count('start', (), map, True)
 
         result = len(paths)
         print(result)
