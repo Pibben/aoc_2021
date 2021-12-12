@@ -28,31 +28,29 @@ def f01():
         for line in lines:
             beg, end = line.split('-')
             if beg not in map:
-                map[beg] = [1]
+                map[beg] = []
             if end not in map:
-                map[end] = [1]
+                map[end] = []
             map[beg].append(end)
             map[end].append(beg)
 
         def count(start, path, map):
             if start.islower():
-                if map[start][0] == 0:
-                    return set()
+                if start in path:
+                    return []
 
             if start == 'end':
-                #print(path + " " + end)
-                return {path}
+                return [path]
 
-            map[start][0] -= 1
+            sum = []
 
-            sum = set()
+            for d in map[start]:
+                new = count(d, path + [start], map)
+                sum.extend(n for n in new if n not in sum)
 
-            for d in map[start][1:]:
-                nmap = copy.deepcopy(map)
-                sum = sum.union(count(d, path + " " + start, nmap))
-            return sum
+            return list(sum)
 
-        paths = count('start', '', map)
+        paths = count('start', [], map)
         result = len(paths)
         print(result)
         assert(result == 3576)
@@ -65,45 +63,38 @@ def f02():
         for line in lines:
             beg, end = line.split('-')
             if beg not in map:
-                map[beg] = [1]
+                map[beg] = []
             if end not in map:
-                map[end] = [1]
+                map[end] = []
             map[beg].append(end)
             map[end].append(beg)
 
-        def count(start, path, map):
+        def count(start, path, map, ex):
             if start.islower():
-                if map[start][0] == 0:
+                if path.count(start) == (2 if start == ex else 1):
                     return set()
 
             if start == 'end':
-                #print(path + " " + end)
                 return {path}
-
-            map[start][0] -= 1
 
             sum = set()
 
-            for d in map[start][1:]:
-                nmap = copy.deepcopy(map)
-                sum = sum.union(count(d, path + " " + start, nmap))
+            for d in map[start]:
+                new = count(d, path + (start,), map, ex)
+                sum = sum.union(new)
+
             return sum
 
-        nmap = copy.deepcopy(map)
-        paths = count('start', '', nmap)
+        paths = count('start', (), map, '')
         for a in map.keys():
             if a.islower() and a not in ['start', 'end']:
-                #print(a)
-                nmap = copy.deepcopy(map)
-                nmap[a][0] = 2
-                paths2 = count('start', '', nmap)
-                #print(a, len(paths2))
+                paths2 = count('start', (), map, a)
                 paths = paths.union(paths2)
-                #map[a][0] = 1
 
         result = len(paths)
         print(result)
         assert(result == 84271)
+
 
 def main():
     f01()
