@@ -77,15 +77,36 @@ def diff(a, b):
 
 
 def translate(coords, offset):
-    return [add(coord, offset) for coord in coords]
+    return set(add(coord, offset) for coord in coords)
 
 
 def manhattan(a, b):
     return abs(a[0] - b[0]) + abs(a[1] - b[1]) + abs(a[2] - b[2])
 
 
+def match(a, b, scanner_loc):
+    b = set(b)
+    for perm in range(24):
+        pts = a[perm]   # new
+        for ptt in b:   # old
+            for pt in pts:
+                offset = diff(ptt, pt)
+                dist = diff(offset, scanner_loc)
+                if max(abs(d) for d in dist) > 2000:
+                    continue
+
+                translated = translate(pts, offset)
+
+                count = len(b.intersection(translated))
+
+                if count >= 12:
+                    return offset, translated
+
+    return None
+
+
 def f01():
-    with open('input2') as file:
+    with open('input') as file:
         scanner_blocks = file.read().split('\n\n')
 
         scanners = []
@@ -95,56 +116,51 @@ def f01():
             coords = []
             for line in lines:
                 coords.append(tuple(toInt(line.split(','))))
-            scanners.append(coords)
+            transcoords = [transform(coords, perm) for perm in range(24)]
+            scanners.append(transcoords)
 
-        total = set(scanners[0])
+        scanners[0] = scanners[0][0]
 
-        done = [False] * len(scanners)
-        done[0] = True
+        not_done = set(range(1, len(scanners)))
 
-        scanner_loc = [(0, 0, 0)]
+        scanner_loc = {0: (0, 0, 0)}
 
-        while not all(done):
-            did_one = False
-            for i in range(len(scanners)):
-                if done[i]:
-                    continue
+        stack = [0]
 
-                sc = scanners[i]
-                found = False
-                for perm in range(24):
-                    pts = transform(sc, perm)
-                    for pt in pts:
-                        for ptt in total:
-                            offset = diff(ptt, pt)
-                            translated = set(translate(pts, offset))
+        while stack:
 
-                            count = len(total.intersection(translated))
+            d = stack.pop()
 
-                            if count >= 12:
-                                scanner_loc.append(offset)
-                                found = True
-                                break
-                        if found:
-                            break
-                    if found:
-                        break
+            for nd in not_done:
+                #print(d, nd, stack, not_done)
 
-                if found:
-                    total = total.union(translated)
-                    done[i] = True
-                    did_one = True
-            if not did_one:
-                print("Failed")
-                break
+                res = match(scanners[nd], scanners[d], scanner_loc[d])
+                if res is not None:
+                    scanner_loc[nd] = res[0]
+                    translated = res[1]
+                    scanners[nd] = translated
+
+                    stack.append(nd)
+
+            for dd in stack:
+                if dd in not_done:
+                    not_done.remove(dd)
+
+        if not_done:
+            print("Failed")
+
+        total = set()
+        for sc in scanners:
+            total = total.union(set(sc))
+
 
         result = len(total)
         print(result)
-        #assert(result == 440)
+        assert(result == 440)
 
-        result = max(manhattan(a, b) for a in scanner_loc for b in scanner_loc)
+        result = max(manhattan(a, b) for a in scanner_loc.values() for b in scanner_loc.values())
         print(result)
-        #assert(result == 13382)
+        assert(result == 13382)
 
 
 def f02():
