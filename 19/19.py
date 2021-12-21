@@ -57,8 +57,6 @@ def get_pose(vec, i):
            (-c, -b, -a)
     ]
 
-    tab = [tuple(t) for t in tab]
-
     assert(len(tab) == 24)
 
     return tab[i]
@@ -84,23 +82,53 @@ def manhattan(a, b):
     return abs(a[0] - b[0]) + abs(a[1] - b[1]) + abs(a[2] - b[2])
 
 
-def match(a, b, scanner_loc):
-    b = set(b)
-    for perm in range(24):
-        pts = a[perm]   # new
+def calc_dot(points):
+    def dist(a, b):
+        return (a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2 + (a[2] - b[2]) ** 2
+
+    def dot(p, m1, m2):
+        d1 = diff(m1, p)
+        d2 = diff(m2, p)
+        return d1[0] * d2[0] + d1[1] * d2[1] + d1[2] * d2[2]
+
+    ret = []
+    for p1 in points:
+        m1 = None
+        m2 = None
+        d1 = sys.maxsize
+        d2 = sys.maxsize
+        for p2 in points:
+            if p1 == p2:
+                continue
+            d = dist(p1, p2)
+            if d < d1:
+                d2 = d1
+                m2 = m1
+                d1 = d
+                m1 = p2
+            elif d < d2:
+                d2 = d
+                m2 = p2
+        ret.append(dot(p1, m1, m2))
+    return ret
+
+
+def match(a, b):
+    d1, d2 = calc_dot(a[0]), calc_dot(b)
+    overlap = len(set(d1).intersection(d2))
+    if overlap == 12:
         for ptt in b:   # old
-            for pt in pts:
-                offset = diff(ptt, pt)
-                dist = diff(offset, scanner_loc)
-                if max(abs(d) for d in dist) > 2000:
-                    continue
+            for perm in range(24):
+                pts = a[perm]  # new
+                for pt in pts:
+                    offset = diff(ptt, pt)
 
-                translated = translate(pts, offset)
+                    translated = translate(pts, offset)
 
-                count = len(b.intersection(translated))
+                    count = len(set(b).intersection(translated))
 
-                if count >= 12:
-                    return offset, translated
+                    if count >= 12:
+                        return offset, translated
 
     return None
 
@@ -113,28 +141,21 @@ def f01():
 
         for sb in scanner_blocks:
             lines = sb.splitlines()[1:]
-            coords = []
-            for line in lines:
-                coords.append(tuple(toInt(line.split(','))))
+            coords = [tuple(toInt(line.split(','))) for line in lines]
             transcoords = [transform(coords, perm) for perm in range(24)]
             scanners.append(transcoords)
 
         scanners[0] = scanners[0][0]
 
         not_done = set(range(1, len(scanners)))
-
         scanner_loc = {0: (0, 0, 0)}
-
         stack = [0]
 
         while stack:
-
             d = stack.pop()
 
             for nd in not_done:
-                #print(d, nd, stack, not_done)
-
-                res = match(scanners[nd], scanners[d], scanner_loc[d])
+                res = match(scanners[nd], scanners[d])
                 if res is not None:
                     scanner_loc[nd] = res[0]
                     translated = res[1]
@@ -152,7 +173,6 @@ def f01():
         total = set()
         for sc in scanners:
             total = total.union(set(sc))
-
 
         result = len(total)
         print(result)
